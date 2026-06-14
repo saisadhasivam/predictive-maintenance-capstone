@@ -1,0 +1,58 @@
+name: Predictive Maintenance CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  ml-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+
+      - name: Step 1 - Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Step 2 - Set Up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Step 3 - Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy scikit-learn xgboost mlflow huggingface_hub joblib streamlit datasets
+
+      - name: Step 4 - Data Preparation
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python src/data_prep.py
+
+      - name: Step 5 - Model Training with MLflow Tracking
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python src/train.py
+
+      - name: Step 6 - Register Best Model on Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python src/register_model.py
+
+      - name: Step 7 - Deploy Streamlit App to Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python src/deploy.py
+
+      - name: Step 8 - Pipeline Complete
+        run: |
+          echo "CI/CD Pipeline completed successfully."
+          echo "Dataset  : https://huggingface.co/datasets/SaiSadhasivam/predictive-maintenance-capstone"
+          echo "Model Hub: https://huggingface.co/SaiSadhasivam/predictive-maintenance-best-model"
+          echo "Live App : https://huggingface.co/spaces/SaiSadhasivam/predictive-maintenance-app"
